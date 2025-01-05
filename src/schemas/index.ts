@@ -1,5 +1,19 @@
 import { z } from "zod";
 
+export const taskSchema = z.object({
+  title: z
+    .string()
+    .min(2, { message: "Be at least 2 characters long!" })
+    .trim(),
+  description: z
+    .string()
+    .min(10, {
+      message: "Be at least 10 characters long!",
+    })
+    .trim(),
+  priority: z.enum(["low", "medium", "high"]),
+});
+
 export const signInSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }).trim(),
   password: z.string().min(1, { message: "Password is required!" }).trim(),

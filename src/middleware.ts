@@ -1,23 +1,25 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-import { decryptToken } from "@/lib/session";
-
-const protectedRoutes = ["/"];
+const publicRoutes = ["/sign-in", "/sign-up"];
 
 export default async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
-  const isProtectedRoute = protectedRoutes.includes(path);
+  const isPublicRoute = publicRoutes.includes(path);
 
-  const cookie = (await cookies()).get("auth-session")?.value;
-  const session = await decryptToken(cookie);
-
-  if (isProtectedRoute && !session?.id) {
-    return NextResponse.redirect(new URL("/sign-in", req.nextUrl));
-  }
+  const cookie = (await cookies()).get(
+    process.env.SESSION_NAME as string,
+  )?.value;
 
   if (
-    session?.id &&
+    !cookie &&
+    (!req.nextUrl.pathname.startsWith("/sign-in") ||
+      !req.nextUrl.pathname.startsWith("/sign-up")) &&
+    !isPublicRoute
+  ) {
+    return NextResponse.redirect(new URL("/sign-in", req.nextUrl));
+  } else if (
+    cookie &&
     (req.nextUrl.pathname.startsWith("/sign-in") ||
       req.nextUrl.pathname.startsWith("/sign-up"))
   ) {
@@ -27,11 +29,7 @@ export default async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
+// Routes Middleware should not run on
 export const config = {
-  matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
-    "/(api|trpc)(.*)",
-  ],
+  matcher: ["/((?!api|_next/static|_next/image|.*\\.png$).*)"],
 };
